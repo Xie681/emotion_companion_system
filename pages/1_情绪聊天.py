@@ -3,7 +3,7 @@ from html import escape
 import pandas as pd
 import streamlit as st
 
-from modules.auth import current_user, persist_chat_records, persist_report, render_auth_panel
+from modules.auth import current_user, persist_chat_records, persist_report, render_auth_panel, rerun_app
 from modules.emotion_analyzer import EmotionAnalyzer
 from modules.reply_generator import generate_reply
 from modules.report_generator import build_chat_report
@@ -28,33 +28,29 @@ if not current_user():
 chat_html = ['<div class="chat-shell">']
 if not st.session_state.chat_records:
     chat_html.append(
-        """
-        <div class="chat-row assistant">
-          <div class="chat-bubble">
-            <div class="chat-name">情绪陪伴助手</div>
-            <div class="chat-text">你好，我在这里。你可以先发一句现在最想说的话。</div>
-          </div>
-        </div>
-        """
+        '<div class="chat-row assistant">'
+        '<div class="chat-bubble">'
+        '<div class="chat-name">情绪陪伴助手</div>'
+        '<div class="chat-text">你好，我在这里。你可以先发一句现在最想说的话。</div>'
+        "</div>"
+        "</div>"
     )
 else:
     for record in st.session_state.chat_records:
         chat_html.append(
-            f"""
-            <div class="chat-row user">
-              <div class="chat-bubble">
-                <div class="chat-name">你</div>
-                <div class="chat-text">{escape(record["text"])}</div>
-              </div>
-            </div>
-            <div class="chat-row assistant">
-              <div class="chat-bubble">
-                <div class="chat-name">情绪陪伴助手</div>
-                <div class="chat-text">{escape(record["reply"])}</div>
-                <div class="chat-meta">情绪：{escape(record["emotion"])} | 置信度：{record["score"]} | {escape(record["reason"])}</div>
-              </div>
-            </div>
-            """,
+            '<div class="chat-row user">'
+            '<div class="chat-bubble">'
+            '<div class="chat-name">你</div>'
+            f'<div class="chat-text">{escape(record["text"])}</div>'
+            "</div>"
+            "</div>"
+            '<div class="chat-row assistant">'
+            '<div class="chat-bubble">'
+            '<div class="chat-name">情绪陪伴助手</div>'
+            f'<div class="chat-text">{escape(record["reply"])}</div>'
+            f'<div class="chat-meta">情绪：{escape(record["emotion"])} | 置信度：{record["score"]} | {escape(record["reason"])}</div>'
+            "</div>"
+            "</div>"
         )
 chat_html.append("</div>")
 st.markdown("\n".join(chat_html), unsafe_allow_html=True)
@@ -79,14 +75,14 @@ if submitted and user_text.strip():
         }
     )
     persist_chat_records(st.session_state.chat_records)
-    st.rerun()
+    rerun_app()
 
 col1, col2 = st.columns(2)
 with col1:
     if st.button("清空对话"):
         st.session_state.chat_records = []
         persist_chat_records(st.session_state.chat_records)
-        st.rerun()
+        rerun_app()
 with col2:
     report = build_chat_report(st.session_state.chat_records)
     st.download_button("导出聊天报告 Markdown", report, "chat_emotion_report.md")

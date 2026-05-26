@@ -59,6 +59,13 @@ def current_user() -> Optional[str]:
     return st.session_state.get("current_user")
 
 
+def rerun_app() -> None:
+    if hasattr(st, "rerun"):
+        st.rerun()
+    else:
+        st.experimental_rerun()
+
+
 def load_user_profile(username: str) -> Dict[str, Any]:
     path = _user_json_path(username)
     if not path.exists():
@@ -135,7 +142,7 @@ def render_auth_panel() -> None:
                 st.session_state.saved_reports = []
                 st.session_state.pop("batch_result_df", None)
                 st.session_state.pop("batch_text_column", None)
-                st.rerun()
+                rerun_app()
             return
 
         mode = st.radio("账号操作", ["登录", "注册"], horizontal=True)
@@ -164,4 +171,4 @@ def render_auth_panel() -> None:
 
             st.session_state.current_user = username_key
             sync_session_from_user(username_key)
-            st.rerun()
+            rerun_app()
