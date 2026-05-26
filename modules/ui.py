@@ -36,6 +36,18 @@ def apply_calm_theme() -> None:
             border-right: 1px solid var(--calm-line);
         }
 
+        section[data-testid="stSidebar"] nav ul li:first-child a,
+        [data-testid="stSidebarNav"] ul li:first-child a {
+            font-size: 0 !important;
+        }
+
+        section[data-testid="stSidebar"] nav ul li:first-child a::after,
+        [data-testid="stSidebarNav"] ul li:first-child a::after {
+            content: "首页";
+            font-size: 1rem;
+            font-weight: 650;
+        }
+
         h1, h2, h3 {
             color: var(--calm-ink);
             letter-spacing: 0;
@@ -491,7 +503,9 @@ def render_home_hero() -> None:
 def render_bili_topbar(active: str = "") -> None:
     pages = [
         ("主页", "/"),
-        ("情绪聊天", "/情绪聊天"),
+        ("情绪分析", "/情绪分析"),
+        ("AI陪伴聊天", "/AI陪伴聊天"),
+        ("情绪记录", "/情绪记录"),
         ("音视频分析", "/音视频分析"),
         ("CSV批量分析", "/CSV批量分析"),
         ("可视化报告", "/可视化报告"),
@@ -538,9 +552,9 @@ def render_feature_cards() -> None:
     st.markdown(
         """
         <div class="calm-card-grid">
-          <a class="calm-card" href="/情绪聊天" target="_self" aria-label="进入情绪聊天"><b>情绪聊天</b><span>输入一句话，识别情绪标签和置信度，并获得更贴近当前状态的回复。</span></a>
-          <a class="calm-card" href="/音视频分析" target="_self" aria-label="进入音视频分析"><b>音视频分析</b><span>上传音频或视频，转写成文字后继续完成情绪分析和陪伴回应。</span></a>
-          <a class="calm-card" href="/CSV批量分析" target="_self" aria-label="进入 CSV 批量分析"><b>CSV 批量分析</b><span>面向评论、问卷和反馈数据，批量标注情绪并支持筛选导出。</span></a>
+          <a class="calm-card" href="/情绪分析" target="_self" aria-label="进入情绪分析"><b>情绪分析</b><span>输入文本，查看情绪识别结果、解释和建议内容。</span></a>
+          <a class="calm-card" href="/情绪聊天" target="_self" aria-label="进入 AI 陪伴聊天"><b>AI陪伴聊天</b><span>保留聊天记录，持续获得贴近当前状态的陪伴回复。</span></a>
+          <a class="calm-card" href="/情绪记录" target="_self" aria-label="进入情绪记录"><b>情绪记录</b><span>查看历史记录表、情绪分类统计和每日情绪趋势。</span></a>
           <a class="calm-card" href="/可视化报告" target="_self" aria-label="进入可视化报告"><b>可视化报告</b><span>展示分布图、趋势图、关键词词云、代表性语句和整体建议。</span></a>
           <a class="calm-card" href="/社区" target="_self" aria-label="进入社区"><b>社区</b><span>发布情绪动态，浏览同学们的状态分享和互相支持的留言。</span></a>
         </div>

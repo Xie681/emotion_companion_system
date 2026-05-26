@@ -5,6 +5,7 @@ import secrets
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from uuid import uuid4
 
 import pandas as pd
 import streamlit as st
@@ -58,6 +59,10 @@ def _user_json_path(username: str) -> Path:
     return _user_dir(username) / "profile.json"
 
 
+def _avatar_path(username: str, suffix: str) -> Path:
+    return _user_dir(username) / f"avatar{suffix}"
+
+
 def current_user() -> Optional[str]:
     return st.session_state.get("current_user")
 
@@ -86,6 +91,7 @@ def sync_session_from_user(username: str) -> None:
     profile = load_user_profile(username)
     st.session_state.chat_records = profile.get("chat_records", [])
     st.session_state.saved_reports = profile.get("reports", [])
+    st.session_state.user_profile = profile
     st.session_state.batch_text_column = profile.get("batch_text_column")
     batch_rows = profile.get("batch_result_rows")
     if batch_rows:
@@ -130,24 +136,115 @@ def persist_report(title: str, content: str) -> None:
     st.session_state.saved_reports = profile["reports"]
 
 
+def display_name(username: Optional[str] = None) -> str:
+    username = username or current_user()
+    if not username:
+        return "未登录用户"
+    profile = load_user_profile(username)
+    return profile.get("nickname") or username
+
+
+def save_user_display_profile(nickname: str, avatar_file: Optional[Any] = None) -> None:
+    username = current_user()
+    if not username:
+        return
+    profile = load_user_profile(username)
+    if nickname.strip():
+        profile["nickname"] = nickname.strip()
+
+    if avatar_file is not None:
+        suffix = Path(avatar_file.name).suffix.lower() or ".png"
+        avatar_path = _avatar_path(username, suffix)
+        _user_dir(username).mkdir(parents=True, exist_ok=True)
+        avatar_path.write_bytes(avatar_file.getbuffer())
+        profile["avatar_path"] = str(avatar_path)
+
+    save_user_profile(username, profile)
+    st.session_state.user_profile = profile
+
+
 def load_community_posts() -> List[dict]:
     _ensure_storage()
     return json.loads(COMMUNITY_STORE.read_text(encoding="utf-8") or "[]")
 
 
-def add_community_post(content: str, emotion: str = "日常") -> None:
+def _save_community_posts(posts: List[dict]) -> None:
+    _ensure_storage()
+    COMMUNITY_STORE.write_text(json.dumps(posts[:100], ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def add_community_post(
+    title: str,
+    content: str,
+    section: str,
+    emotion: str,
+    is_anonymous: bool,
+    analysis: Dict[str, Any],
+    ai_reply: str,
+) -> None:
     username = current_user() or "匿名用户"
+    post_display_name = analysis.get("anonymous_name") if is_anonymous else display_name(username)
     posts = load_community_posts()
     posts.insert(
         0,
         {
+            "id": uuid4().hex,
             "username": username,
+            "display_name": post_display_name or "匿名用户",
+            "title": title,
+            "section": section,
             "emotion": emotion,
+            "ai_tags": analysis.get("tags", []),
+            "emotion_tendency": analysis.get("emotion_tendency", "中性"),
+            "possible_emotions": analysis.get("possible_emotions", []),
+            "risk_level": analysis.get("risk_level", "低"),
+            "risk_reason": analysis.get("risk_reason", ""),
+            "ai_reply": ai_reply,
             "content": content,
+            "is_anonymous": is_anonymous,
+            "status": "待审核" if analysis.get("risk_level") == "高" else "已发布",
+            "supports": {"拥抱": 0, "陪伴": 0, "鼓励": 0},
+            "comments": [],
             "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         },
     )
-    COMMUNITY_STORE.write_text(json.dumps(posts[:100], ensure_ascii=False, indent=2), encoding="utf-8")
+    _save_community_posts(posts)
+
+
+def update_community_support(post_id: str, support_type: str) -> None:
+    posts = load_community_posts()
+    for post in posts:
+        if post.get("id") == post_id:
+            supports = post.setdefault("supports", {"拥抱": 0, "陪伴": 0, "鼓励": 0})
+            supports[support_type] = int(supports.get(support_type, 0)) + 1
+            break
+    _save_community_posts(posts)
+
+
+def add_community_comment(post_id: str, content: str, quick_reply: str = "") -> None:
+    username = current_user() or "匿名用户"
+    posts = load_community_posts()
+    for post in posts:
+        if post.get("id") == post_id:
+            comments = post.setdefault("comments", [])
+            comments.append(
+                {
+                    "username": username,
+                    "content": content or quick_reply,
+                    "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                }
+            )
+            break
+    _save_community_posts(posts)
+
+
+def set_community_status(post_id: str, status: str) -> None:
+    posts = load_community_posts()
+    for post in posts:
+        if post.get("id") == post_id:
+            post["status"] = status
+            break
+    _save_community_posts(posts)
 
 
 def render_auth_controls(key_prefix: str = "auth", show_title: bool = True) -> None:
@@ -159,7 +256,18 @@ def render_auth_controls(key_prefix: str = "auth", show_title: bool = True) -> N
 
     username = current_user()
     if username:
-        st.success(f"当前用户：{username}")
+        profile = load_user_profile(username)
+        avatar_path = profile.get("avatar_path")
+        if avatar_path and Path(avatar_path).exists():
+            st.image(avatar_path, width=72)
+        st.success(f"当前用户：{display_name(username)}")
+        with st.expander("编辑个人资料"):
+            nickname = st.text_input("修改昵称", value=profile.get("nickname", username), key=f"{key_prefix}_nickname")
+            avatar_file = st.file_uploader("上传头像", type=["png", "jpg", "jpeg"], key=f"{key_prefix}_avatar")
+            if st.button("保存资料", key=f"{key_prefix}_save_profile"):
+                save_user_display_profile(nickname, avatar_file)
+                st.success("个人资料已保存。")
+                rerun_app()
         if st.button("退出登录", key=f"{key_prefix}_logout"):
             st.session_state.current_user = None
             st.session_state.chat_records = []
