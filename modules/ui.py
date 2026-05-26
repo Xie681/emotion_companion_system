@@ -91,12 +91,24 @@ def apply_calm_theme() -> None:
         }
 
         .calm-card {
+            display: block;
             min-height: 135px;
             padding: 1rem;
             border: 1px solid var(--calm-line);
             border-radius: 14px;
             background: var(--calm-panel);
             box-shadow: 0 10px 28px rgba(92, 118, 105, 0.1);
+            text-decoration: none;
+            cursor: pointer;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+        }
+
+        .calm-card:hover,
+        .calm-card:focus-visible {
+            border-color: rgba(124, 163, 139, 0.52);
+            box-shadow: 0 14px 34px rgba(92, 118, 105, 0.16);
+            transform: translateY(-2px);
+            outline: none;
         }
 
         .calm-card b {
@@ -226,11 +238,11 @@ def render_cartoon_companion() -> str:
 def render_home_hero() -> None:
     st.markdown(
         f"""
-        <section class="calm-hero">
+        <div class="calm-hero">
           <h1>基于 NLP 的多模态情绪陪伴与情感分析系统</h1>
           <p>用柔和的界面承接文字、音频、视频与 CSV 数据，识别情绪变化，生成温和回应和可导出的分析报告。</p>
           {render_cartoon_companion()}
-        </section>
+        </div>
         """,
         unsafe_allow_html=True,
     )
@@ -240,10 +252,10 @@ def render_feature_cards() -> None:
     st.markdown(
         """
         <div class="calm-card-grid">
-          <div class="calm-card"><b>情绪聊天</b><span>输入一句话，识别情绪标签和置信度，并获得更贴近当前状态的回复。</span></div>
-          <div class="calm-card"><b>音视频分析</b><span>上传音频或视频，转写成文字后继续完成情绪分析和陪伴回应。</span></div>
-          <div class="calm-card"><b>CSV 批量分析</b><span>面向评论、问卷和反馈数据，批量标注情绪并支持筛选导出。</span></div>
-          <div class="calm-card"><b>可视化报告</b><span>展示分布图、趋势图、关键词词云、代表性语句和整体建议。</span></div>
+          <a class="calm-card" href="/情绪聊天" target="_self" aria-label="进入情绪聊天"><b>情绪聊天</b><span>输入一句话，识别情绪标签和置信度，并获得更贴近当前状态的回复。</span></a>
+          <a class="calm-card" href="/音视频分析" target="_self" aria-label="进入音视频分析"><b>音视频分析</b><span>上传音频或视频，转写成文字后继续完成情绪分析和陪伴回应。</span></a>
+          <a class="calm-card" href="/CSV批量分析" target="_self" aria-label="进入 CSV 批量分析"><b>CSV 批量分析</b><span>面向评论、问卷和反馈数据，批量标注情绪并支持筛选导出。</span></a>
+          <a class="calm-card" href="/可视化报告" target="_self" aria-label="进入可视化报告"><b>可视化报告</b><span>展示分布图、趋势图、关键词词云、代表性语句和整体建议。</span></a>
         </div>
         """,
         unsafe_allow_html=True,
