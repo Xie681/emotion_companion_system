@@ -339,6 +339,54 @@ def apply_calm_theme() -> None:
             opacity: 0.9;
         }
 
+        .confidence-wrap {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.18rem;
+            padding-right: 0.65rem;
+        }
+
+        .confidence-badge {
+            position: absolute;
+            top: -0.55rem;
+            right: -0.05rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1rem;
+            height: 1rem;
+            border-radius: 999px;
+            background: var(--bili-pink);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 800;
+            line-height: 1;
+            box-shadow: 0 4px 10px rgba(251, 114, 153, 0.26);
+            cursor: help;
+        }
+
+        .confidence-card {
+            position: relative;
+            min-height: 96px;
+            padding: 1rem;
+            border: 1px solid var(--calm-line);
+            border-radius: 14px;
+            background: var(--calm-panel);
+        }
+
+        .confidence-card-label {
+            color: var(--calm-muted);
+            font-size: 0.92rem;
+        }
+
+        .confidence-card-value {
+            margin-top: 0.35rem;
+            color: var(--calm-ink);
+            font-size: 2rem;
+            font-weight: 750;
+        }
+
         div[data-baseweb="tab-list"] {
             gap: 0.4rem;
             border-bottom: 1px solid var(--calm-line);
@@ -450,6 +498,7 @@ def render_bili_topbar(active: str = "") -> None:
         ("CSV批量分析", "/CSV批量分析"),
         ("可视化报告", "/可视化报告"),
         ("社区", "/社区"),
+        ("关于系统", "/关于系统"),
     ]
     nav_links = "".join(
         f'<a class="bili-link{" active" if name == active else ""}" href="{href}" target="_self">{name}</a>'
@@ -463,6 +512,28 @@ def render_bili_topbar(active: str = "") -> None:
         "</div>"
     )
     st.markdown(html, unsafe_allow_html=True)
+
+
+def confidence_hint(score: float) -> str:
+    explanation = "置信度表示系统对当前情绪标签判断的可靠程度，数值越接近 1 越可靠。"
+    return (
+        '<span class="confidence-wrap">'
+        f"置信度：{score}"
+        f'<span class="confidence-badge" title="{explanation}">!</span>'
+        "</span>"
+    )
+
+
+def render_confidence_card(score: float) -> str:
+    explanation = "置信度表示系统对当前情绪标签判断的可靠程度，数值越接近 1 越可靠。"
+    return (
+        '<div class="confidence-card">'
+        '<div class="confidence-card-label">置信度'
+        f'<span class="confidence-badge" title="{explanation}">!</span>'
+        "</div>"
+        f'<div class="confidence-card-value">{score}</div>'
+        "</div>"
+    )
 
 
 def render_feature_cards() -> None:

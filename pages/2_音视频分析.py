@@ -7,7 +7,7 @@ from modules.auth import render_auth_panel
 from modules.emotion_analyzer import EmotionAnalyzer
 from modules.reply_generator import generate_reply
 from modules.speech_to_text import transcribe_audio
-from modules.ui import apply_calm_theme, render_bili_topbar
+from modules.ui import apply_calm_theme, render_bili_topbar, render_confidence_card
 from modules.video_processor import extract_audio_from_video
 
 
@@ -48,7 +48,7 @@ if uploaded_file:
             st.subheader("情绪分析")
             col1, col2 = st.columns(2)
             col1.metric("情绪标签", result.label)
-            col2.metric("置信度", result.score)
+            col2.markdown(render_confidence_card(result.score), unsafe_allow_html=True)
             st.caption(result.reason)
 
             st.subheader("自适应回复")

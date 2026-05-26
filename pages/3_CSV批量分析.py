@@ -36,6 +36,7 @@ if "batch_result_df" in st.session_state:
     text_column = st.session_state.get("batch_text_column", result_df.columns[0])
 
     st.subheader("筛选结果")
+    st.caption("emotion_score 为情绪识别置信度，表示系统对该情绪标签判断的可靠程度，数值越接近 1 越可靠。")
     emotions = ["全部"] + sorted(result_df["emotion_label"].unique().tolist())
     selected_emotion = st.selectbox("按情绪筛选", emotions)
     keyword = st.text_input("关键词搜索")

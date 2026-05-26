@@ -150,48 +150,54 @@ def add_community_post(content: str, emotion: str = "日常") -> None:
     COMMUNITY_STORE.write_text(json.dumps(posts[:100], ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def render_auth_panel() -> None:
+def render_auth_controls(key_prefix: str = "auth", show_title: bool = True) -> None:
     if "current_user" not in st.session_state:
         st.session_state.current_user = None
 
-    with st.sidebar:
+    if show_title:
         st.markdown("### 用户")
-        username = current_user()
-        if username:
-            st.success(f"已登录：{username}")
-            if st.button("退出登录"):
-                st.session_state.current_user = None
-                st.session_state.chat_records = []
-                st.session_state.saved_reports = []
-                st.session_state.pop("batch_result_df", None)
-                st.session_state.pop("batch_text_column", None)
-                rerun_app()
+
+    username = current_user()
+    if username:
+        st.success(f"当前用户：{username}")
+        if st.button("退出登录", key=f"{key_prefix}_logout"):
+            st.session_state.current_user = None
+            st.session_state.chat_records = []
+            st.session_state.saved_reports = []
+            st.session_state.pop("batch_result_df", None)
+            st.session_state.pop("batch_text_column", None)
+            rerun_app()
+        return
+
+    mode = st.radio("账号操作", ["登录", "注册"], horizontal=True, key=f"{key_prefix}_mode")
+    input_username = st.text_input("用户名", key=f"{key_prefix}_username")
+    input_password = st.text_input("密码", type="password", key=f"{key_prefix}_password")
+
+    if st.button(mode, key=f"{key_prefix}_submit"):
+        if not input_username.strip() or not input_password:
+            st.warning("请输入用户名和密码。")
             return
 
-        mode = st.radio("账号操作", ["登录", "注册"], horizontal=True)
-        input_username = st.text_input("用户名")
-        input_password = st.text_input("密码", type="password")
-
-        if st.button(mode):
-            if not input_username.strip() or not input_password:
-                st.warning("请输入用户名和密码。")
+        users = _load_users()
+        username_key = input_username.strip()
+        if mode == "注册":
+            if username_key in users:
+                st.error("用户名已存在，请直接登录。")
+                return
+            users[username_key] = _hash_password(input_password)
+            _save_users(users)
+            save_user_profile(username_key, {"chat_records": [], "reports": [], "batch_text_column": None})
+            st.success("注册成功，已自动登录。")
+        else:
+            if username_key not in users or not _verify_password(input_password, users[username_key]):
+                st.error("用户名或密码不正确。")
                 return
 
-            users = _load_users()
-            username_key = input_username.strip()
-            if mode == "注册":
-                if username_key in users:
-                    st.error("用户名已存在，请直接登录。")
-                    return
-                users[username_key] = _hash_password(input_password)
-                _save_users(users)
-                save_user_profile(username_key, {"chat_records": [], "reports": [], "batch_text_column": None})
-                st.success("注册成功，已自动登录。")
-            else:
-                if username_key not in users or not _verify_password(input_password, users[username_key]):
-                    st.error("用户名或密码不正确。")
-                    return
+        st.session_state.current_user = username_key
+        sync_session_from_user(username_key)
+        rerun_app()
 
-            st.session_state.current_user = username_key
-            sync_session_from_user(username_key)
-            rerun_app()
+
+def render_auth_panel() -> None:
+    with st.sidebar:
+        render_auth_controls("sidebar_auth")

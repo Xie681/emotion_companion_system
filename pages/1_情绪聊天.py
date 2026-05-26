@@ -1,4 +1,5 @@
 from html import escape
+from datetime import datetime
 
 import pandas as pd
 import streamlit as st
@@ -7,7 +8,7 @@ from modules.auth import current_user, persist_chat_records, persist_report, ren
 from modules.emotion_analyzer import EmotionAnalyzer
 from modules.reply_generator import generate_reply
 from modules.report_generator import build_chat_report
-from modules.ui import apply_calm_theme, render_bili_topbar
+from modules.ui import apply_calm_theme, confidence_hint, render_bili_topbar
 from modules.visualization import emotion_trend_chart
 
 
@@ -49,7 +50,7 @@ else:
             '<div class="chat-bubble">'
             '<div class="chat-name">情绪陪伴助手</div>'
             f'<div class="chat-text">{escape(record["reply"])}</div>'
-            f'<div class="chat-meta">情绪：{escape(record["emotion"])} | 置信度：{record["score"]} | {escape(record["reason"])}</div>'
+            f'<div class="chat-meta">情绪：{escape(record["emotion"])} | {confidence_hint(record["score"])} | {escape(record["reason"])}</div>'
             "</div>"
             "</div>"
         )
@@ -73,6 +74,7 @@ if submitted and user_text.strip():
             "polarity": result.polarity,
             "reason": result.reason,
             "reply": reply,
+            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
     )
     persist_chat_records(st.session_state.chat_records)
