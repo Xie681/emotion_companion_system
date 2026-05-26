@@ -13,12 +13,15 @@ import streamlit as st
 DATA_DIR = Path("data")
 USER_STORE = DATA_DIR / "users.json"
 USER_DATA_DIR = DATA_DIR / "user_data"
+COMMUNITY_STORE = DATA_DIR / "community_posts.json"
 
 
 def _ensure_storage() -> None:
     USER_DATA_DIR.mkdir(parents=True, exist_ok=True)
     if not USER_STORE.exists():
         USER_STORE.write_text("{}", encoding="utf-8")
+    if not COMMUNITY_STORE.exists():
+        COMMUNITY_STORE.write_text("[]", encoding="utf-8")
 
 
 def _load_users() -> Dict[str, Dict[str, str]]:
@@ -125,6 +128,26 @@ def persist_report(title: str, content: str) -> None:
     profile["reports"] = reports[:20]
     save_user_profile(username, profile)
     st.session_state.saved_reports = profile["reports"]
+
+
+def load_community_posts() -> List[dict]:
+    _ensure_storage()
+    return json.loads(COMMUNITY_STORE.read_text(encoding="utf-8") or "[]")
+
+
+def add_community_post(content: str, emotion: str = "日常") -> None:
+    username = current_user() or "匿名用户"
+    posts = load_community_posts()
+    posts.insert(
+        0,
+        {
+            "username": username,
+            "emotion": emotion,
+            "content": content,
+            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        },
+    )
+    COMMUNITY_STORE.write_text(json.dumps(posts[:100], ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def render_auth_panel() -> None:

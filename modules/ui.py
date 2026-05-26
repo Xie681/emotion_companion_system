@@ -8,6 +8,8 @@ def apply_calm_theme() -> None:
         """
         <style>
         :root {
+            --bili-pink: #fb7299;
+            --bili-blue: #23ade5;
             --calm-bg: #f6f4ee;
             --calm-panel: rgba(255, 252, 245, 0.92);
             --calm-panel-strong: #fffaf1;
@@ -44,9 +46,73 @@ def apply_calm_theme() -> None:
         }
 
         .block-container {
-            padding-top: 2rem;
+            padding-top: 1rem;
             padding-bottom: 3rem;
             max-width: 1180px;
+        }
+
+        .bili-topbar {
+            position: sticky;
+            top: 0.65rem;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding: 0.7rem 0.85rem;
+            border: 1px solid rgba(251, 114, 153, 0.16);
+            border-radius: 14px;
+            background: rgba(255, 252, 245, 0.9);
+            box-shadow: 0 12px 30px rgba(92, 118, 105, 0.1);
+            backdrop-filter: blur(12px);
+        }
+
+        .bili-brand {
+            color: var(--calm-ink);
+            font-size: 1.05rem;
+            font-weight: 800;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .bili-brand span {
+            color: var(--bili-pink);
+        }
+
+        .bili-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .bili-link,
+        .bili-home-link {
+            display: inline-flex;
+            align-items: center;
+            min-height: 36px;
+            padding: 0 0.82rem;
+            border-radius: 999px;
+            color: var(--calm-muted);
+            text-decoration: none;
+            font-weight: 650;
+            transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
+        }
+
+        .bili-link:hover,
+        .bili-home-link:hover,
+        .bili-link.active {
+            background: rgba(251, 114, 153, 0.12);
+            color: var(--bili-pink);
+            transform: translateY(-1px);
+        }
+
+        .bili-home-link {
+            background: linear-gradient(135deg, rgba(251, 114, 153, 0.14), rgba(35, 173, 229, 0.14));
+            color: var(--calm-ink);
+            white-space: nowrap;
         }
 
         .calm-hero {
@@ -87,7 +153,7 @@ def apply_calm_theme() -> None:
 
         .calm-card-grid {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(5, minmax(0, 1fr));
             gap: 1rem;
             margin-top: 1.3rem;
         }
@@ -132,6 +198,43 @@ def apply_calm_theme() -> None:
             border-radius: 14px;
             background: var(--calm-panel);
             box-shadow: 0 10px 28px rgba(92, 118, 105, 0.08);
+        }
+
+        .record-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .record-card {
+            min-height: 120px;
+            padding: 1rem;
+            border: 1px solid var(--calm-line);
+            border-radius: 12px;
+            background: rgba(255, 252, 245, 0.86);
+            box-shadow: 0 10px 26px rgba(92, 118, 105, 0.08);
+        }
+
+        .record-card b {
+            display: block;
+            margin-bottom: 0.4rem;
+            color: var(--calm-ink);
+        }
+
+        .record-card span,
+        .community-meta {
+            color: var(--calm-muted);
+            font-size: 0.9rem;
+            line-height: 1.7;
+        }
+
+        .community-post {
+            margin-top: 1rem;
+            padding: 1rem;
+            border: 1px solid var(--calm-line);
+            border-radius: 12px;
+            background: rgba(255, 252, 245, 0.9);
         }
 
         .gentle-note {
@@ -259,6 +362,13 @@ def apply_calm_theme() -> None:
             .calm-card-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
+            .record-grid {
+                grid-template-columns: 1fr;
+            }
+            .bili-topbar {
+                align-items: flex-start;
+                flex-direction: column;
+            }
             .calm-hero {
                 padding: 1.4rem;
                 min-height: 420px;
@@ -332,6 +442,29 @@ def render_home_hero() -> None:
     )
 
 
+def render_bili_topbar(active: str = "") -> None:
+    pages = [
+        ("主页", "/"),
+        ("情绪聊天", "/情绪聊天"),
+        ("音视频分析", "/音视频分析"),
+        ("CSV批量分析", "/CSV批量分析"),
+        ("可视化报告", "/可视化报告"),
+        ("社区", "/社区"),
+    ]
+    nav_links = "".join(
+        f'<a class="bili-link{" active" if name == active else ""}" href="{href}" target="_self">{name}</a>'
+        for name, href in pages[1:]
+    )
+    html = (
+        '<div class="bili-topbar">'
+        '<a class="bili-brand" href="/" target="_self"><span>Emotion</span> Companion</a>'
+        f'<div class="bili-nav">{nav_links}</div>'
+        '<a class="bili-home-link" href="/" target="_self">主页</a>'
+        "</div>"
+    )
+    st.markdown(html, unsafe_allow_html=True)
+
+
 def render_feature_cards() -> None:
     st.markdown(
         """
@@ -340,6 +473,7 @@ def render_feature_cards() -> None:
           <a class="calm-card" href="/音视频分析" target="_self" aria-label="进入音视频分析"><b>音视频分析</b><span>上传音频或视频，转写成文字后继续完成情绪分析和陪伴回应。</span></a>
           <a class="calm-card" href="/CSV批量分析" target="_self" aria-label="进入 CSV 批量分析"><b>CSV 批量分析</b><span>面向评论、问卷和反馈数据，批量标注情绪并支持筛选导出。</span></a>
           <a class="calm-card" href="/可视化报告" target="_self" aria-label="进入可视化报告"><b>可视化报告</b><span>展示分布图、趋势图、关键词词云、代表性语句和整体建议。</span></a>
+          <a class="calm-card" href="/社区" target="_self" aria-label="进入社区"><b>社区</b><span>发布情绪动态，浏览同学们的状态分享和互相支持的留言。</span></a>
         </div>
         """,
         unsafe_allow_html=True,

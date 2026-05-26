@@ -3,12 +3,13 @@ import streamlit as st
 
 from modules.auth import current_user, persist_report, render_auth_panel
 from modules.report_generator import build_chat_report
-from modules.ui import apply_calm_theme
+from modules.ui import apply_calm_theme, render_bili_topbar
 from modules.visualization import create_wordcloud_image, emotion_bar_chart, emotion_pie_chart, emotion_trend_chart
 
 
 st.set_page_config(page_title="可视化报告", page_icon="AI", layout="wide")
 apply_calm_theme()
+render_bili_topbar("可视化报告")
 render_auth_panel()
 st.title("可视化报告")
 st.markdown('<div class="gentle-note">把聊天和批量分析结果汇总成更容易阅读的情绪报告。</div>', unsafe_allow_html=True)

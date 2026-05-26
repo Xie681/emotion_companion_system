@@ -1,4 +1,5 @@
 AIemotion/
+AIemotion38/
 .venv/
 venv/
 env/
@@ -16,6 +17,7 @@ __pycache__/
 data/uploaded/*
 data/results/*
 data/users.json
+data/community_posts.json
 data/user_data/*
 !data/uploaded/.gitkeep
 !data/results/.gitkeep

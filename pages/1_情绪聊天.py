@@ -7,12 +7,13 @@ from modules.auth import current_user, persist_chat_records, persist_report, ren
 from modules.emotion_analyzer import EmotionAnalyzer
 from modules.reply_generator import generate_reply
 from modules.report_generator import build_chat_report
-from modules.ui import apply_calm_theme
+from modules.ui import apply_calm_theme, render_bili_topbar
 from modules.visualization import emotion_trend_chart
 
 
 st.set_page_config(page_title="情绪聊天", page_icon="AI", layout="wide")
 apply_calm_theme()
+render_bili_topbar("情绪聊天")
 render_auth_panel()
 st.title("情绪聊天")
 st.markdown('<div class="gentle-note">像日常聊天一样发送想说的话。系统会识别情绪，并把对话保存在已登录账号中。</div>', unsafe_allow_html=True)
