@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import json
 import re
@@ -67,6 +68,15 @@ def current_user() -> Optional[str]:
     return st.session_state.get("current_user")
 
 
+def current_actor_id() -> str:
+    username = current_user()
+    if username:
+        return f"user:{username}"
+    if "anonymous_actor_id" not in st.session_state:
+        st.session_state.anonymous_actor_id = f"anon:{uuid4().hex}"
+    return st.session_state.anonymous_actor_id
+
+
 def rerun_app() -> None:
     if hasattr(st, "rerun"):
         st.rerun()
@@ -107,6 +117,59 @@ def persist_chat_records(records: List[dict]) -> None:
     save_user_profile(username, profile)
 
 
+def archive_current_chat(title: str = "") -> bool:
+    username = current_user()
+    if not username:
+        return False
+    profile = load_user_profile(username)
+    records = profile.get("chat_records", [])
+    if not records:
+        return False
+    sessions = profile.get("chat_sessions", [])
+    first_text = str(records[0].get("text", ""))
+    sessions.insert(
+        0,
+        {
+            "id": uuid4().hex,
+            "title": title.strip() or first_text[:24] or "新的聊天",
+            "created_at": records[0].get("created_at", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+            "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "records": records,
+        },
+    )
+    profile["chat_sessions"] = sessions[:50]
+    profile["chat_records"] = []
+    save_user_profile(username, profile)
+    st.session_state.chat_records = []
+    return True
+
+
+def search_chat_records(keyword: str) -> List[dict]:
+    username = current_user()
+    if not username or not keyword.strip():
+        return []
+    profile = load_user_profile(username)
+    keyword = keyword.strip()
+    results = []
+    sources = [{"title": "当前聊天", "records": profile.get("chat_records", [])}]
+    sources.extend(profile.get("chat_sessions", []))
+    for source in sources:
+        for record in source.get("records", []):
+            text = str(record.get("text", ""))
+            reply = str(record.get("reply", ""))
+            if keyword in text or keyword in reply or keyword in str(record.get("emotion", "")):
+                results.append(
+                    {
+                        "会话": source.get("title", "历史会话"),
+                        "时间": record.get("created_at", ""),
+                        "情绪": record.get("emotion", ""),
+                        "用户输入": text,
+                        "AI回复": reply,
+                    }
+                )
+    return results
+
+
 def persist_batch_result(result_df: pd.DataFrame, text_column: str) -> None:
     username = current_user()
     if not username:
@@ -144,13 +207,48 @@ def display_name(username: Optional[str] = None) -> str:
     return profile.get("nickname") or username
 
 
-def save_user_display_profile(nickname: str, avatar_file: Optional[Any] = None) -> None:
+def render_avatar(profile: Dict[str, Any], size: int = 88) -> None:
+    avatar_path = profile.get("avatar_path")
+    if not avatar_path or not Path(avatar_path).exists():
+        st.markdown(
+            f'<div style="width:{size}px;height:{size}px;border-radius:50%;background:linear-gradient(135deg,#bfd9c7,#b8d7df);display:flex;align-items:center;justify-content:center;color:#31413b;font-weight:800;">用户</div>',
+            unsafe_allow_html=True,
+        )
+        return
+
+    path = Path(avatar_path)
+    mime = "image/png" if path.suffix.lower() == ".png" else "image/jpeg"
+    encoded = base64.b64encode(path.read_bytes()).decode("ascii")
+    pos_x = int(profile.get("avatar_position_x", 50))
+    pos_y = int(profile.get("avatar_position_y", 50))
+    st.markdown(
+        (
+            f'<img src="data:{mime};base64,{encoded}" '
+            f'style="width:{size}px;height:{size}px;border-radius:50%;object-fit:cover;'
+            f'object-position:{pos_x}% {pos_y}%;border:3px solid rgba(255,252,245,.95);'
+            f'box-shadow:0 8px 18px rgba(92,118,105,.18);" alt="用户头像">'
+        ),
+        unsafe_allow_html=True,
+    )
+
+
+def save_user_display_profile(
+    nickname: str,
+    avatar_file: Optional[Any] = None,
+    avatar_position_x: int = 50,
+    avatar_position_y: int = 50,
+    assistant_name: str = "",
+) -> None:
     username = current_user()
     if not username:
         return
     profile = load_user_profile(username)
     if nickname.strip():
         profile["nickname"] = nickname.strip()
+    if assistant_name.strip():
+        profile["assistant_name"] = assistant_name.strip()
+    profile["avatar_position_x"] = avatar_position_x
+    profile["avatar_position_y"] = avatar_position_y
 
     if avatar_file is not None:
         suffix = Path(avatar_file.name).suffix.lower() or ".png"
@@ -166,6 +264,14 @@ def save_user_display_profile(nickname: str, avatar_file: Optional[Any] = None) 
 def load_community_posts() -> List[dict]:
     _ensure_storage()
     return json.loads(COMMUNITY_STORE.read_text(encoding="utf-8") or "[]")
+
+
+def assistant_name(username: Optional[str] = None) -> str:
+    username = username or current_user()
+    if not username:
+        return "情绪陪伴助手"
+    profile = load_user_profile(username)
+    return profile.get("assistant_name") or "情绪陪伴助手"
 
 
 def _save_community_posts(posts: List[dict]) -> None:
@@ -204,6 +310,7 @@ def add_community_post(
             "is_anonymous": is_anonymous,
             "status": "待审核" if analysis.get("risk_level") == "高" else "已发布",
             "supports": {"拥抱": 0, "陪伴": 0, "鼓励": 0},
+            "supporters": {"拥抱": [], "陪伴": [], "鼓励": []},
             "comments": [],
             "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         },
@@ -211,14 +318,23 @@ def add_community_post(
     _save_community_posts(posts)
 
 
-def update_community_support(post_id: str, support_type: str) -> None:
+def update_community_support(post_id: str, support_type: str, actor_id: Optional[str] = None) -> bool:
+    actor_id = actor_id or current_actor_id()
     posts = load_community_posts()
+    changed = False
     for post in posts:
         if post.get("id") == post_id:
             supports = post.setdefault("supports", {"拥抱": 0, "陪伴": 0, "鼓励": 0})
+            supporters = post.setdefault("supporters", {"拥抱": [], "陪伴": [], "鼓励": []})
+            support_user_list = supporters.setdefault(support_type, [])
+            if actor_id in support_user_list:
+                break
+            support_user_list.append(actor_id)
             supports[support_type] = int(supports.get(support_type, 0)) + 1
+            changed = True
             break
     _save_community_posts(posts)
+    return changed
 
 
 def add_community_comment(post_id: str, content: str, quick_reply: str = "") -> None:
@@ -257,15 +373,39 @@ def render_auth_controls(key_prefix: str = "auth", show_title: bool = True) -> N
     username = current_user()
     if username:
         profile = load_user_profile(username)
-        avatar_path = profile.get("avatar_path")
-        if avatar_path and Path(avatar_path).exists():
-            st.image(avatar_path, width=72)
+        render_avatar(profile, size=88)
         st.success(f"当前用户：{display_name(username)}")
         with st.expander("编辑个人资料"):
             nickname = st.text_input("修改昵称", value=profile.get("nickname", username), key=f"{key_prefix}_nickname")
+            custom_assistant_name = st.text_input(
+                "AI助手命名",
+                value=profile.get("assistant_name", "情绪陪伴助手"),
+                key=f"{key_prefix}_assistant_name",
+            )
             avatar_file = st.file_uploader("上传头像", type=["png", "jpg", "jpeg"], key=f"{key_prefix}_avatar")
+            st.caption("头像会以圆形展示。拖动下面两个滑块，可以调整图片在圆形里的水平和垂直位置。")
+            avatar_position_x = st.slider(
+                "头像水平对齐",
+                min_value=0,
+                max_value=100,
+                value=int(profile.get("avatar_position_x", 50)),
+                key=f"{key_prefix}_avatar_x",
+            )
+            avatar_position_y = st.slider(
+                "头像垂直对齐",
+                min_value=0,
+                max_value=100,
+                value=int(profile.get("avatar_position_y", 50)),
+                key=f"{key_prefix}_avatar_y",
+            )
             if st.button("保存资料", key=f"{key_prefix}_save_profile"):
-                save_user_display_profile(nickname, avatar_file)
+                save_user_display_profile(
+                    nickname,
+                    avatar_file,
+                    avatar_position_x,
+                    avatar_position_y,
+                    custom_assistant_name,
+                )
                 st.success("个人资料已保存。")
                 rerun_app()
         if st.button("退出登录", key=f"{key_prefix}_logout"):

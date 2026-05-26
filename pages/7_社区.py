@@ -5,6 +5,8 @@ import streamlit as st
 from modules.auth import (
     add_community_comment,
     add_community_post,
+    assistant_name,
+    current_actor_id,
     current_user,
     load_community_posts,
     render_auth_panel,
@@ -27,6 +29,7 @@ render_bili_topbar("社区")
 render_auth_panel()
 
 st.title("情绪陪伴社区")
+current_assistant_name = assistant_name()
 st.markdown(
     '<div class="gentle-note">情绪社区提供匿名倾诉、AI 辅助识别、同伴支持和安全审核，形成“用户倾诉—AI辅助—同伴支持—安全管理”的闭环。</div>',
     unsafe_allow_html=True,
@@ -80,6 +83,8 @@ for post in visible_posts:
     display_name = post.get("display_name") or post.get("username", "匿名用户")
     tags = " ".join(post.get("ai_tags", []))
     supports = post.get("supports", {"拥抱": 0, "陪伴": 0, "鼓励": 0})
+    supporters = post.get("supporters", {"拥抱": [], "陪伴": [], "鼓励": []})
+    actor_id = current_actor_id()
     comments = post.get("comments", [])
 
     st.markdown(
@@ -89,7 +94,7 @@ for post in visible_posts:
             f'<div class="community-meta">{escape(display_name)} · {escape(post.get("section", "树洞倾诉区"))} · {escape(post.get("created_at", ""))}</div>'
             f'<div class="community-meta">情绪倾向：{escape(post.get("emotion_tendency", "中性"))} · 风险等级：{escape(risk_level)} · {escape(tags)}</div>'
             f'<p style="margin: .65rem 0 0; white-space: pre-wrap;">{escape(post.get("content", ""))}</p>'
-            f'<div class="gentle-note" style="margin-top:.75rem;"><b>AI温和回应：</b>{escape(post.get("ai_reply", ""))}</div>'
+            f'<div class="gentle-note" style="margin-top:.75rem;"><b>{escape(current_assistant_name)}：</b>{escape(post.get("ai_reply", ""))}</div>'
             "</div>"
         ),
         unsafe_allow_html=True,
@@ -100,16 +105,19 @@ for post in visible_posts:
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        if st.button(f"🤗 拥抱 {supports.get('拥抱', 0)}", key=f"hug_{post.get('id')}"):
-            update_community_support(post.get("id"), "拥抱")
+        hugged = actor_id in supporters.get("拥抱", [])
+        if st.button(f"{'✅' if hugged else '🤗'} 拥抱 {supports.get('拥抱', 0)}", key=f"hug_{post.get('id')}", disabled=hugged):
+            update_community_support(post.get("id"), "拥抱", actor_id)
             rerun_app()
     with col2:
-        if st.button(f"🌙 陪伴 {supports.get('陪伴', 0)}", key=f"stay_{post.get('id')}"):
-            update_community_support(post.get("id"), "陪伴")
+        stayed = actor_id in supporters.get("陪伴", [])
+        if st.button(f"{'✅' if stayed else '🌙'} 陪伴 {supports.get('陪伴', 0)}", key=f"stay_{post.get('id')}", disabled=stayed):
+            update_community_support(post.get("id"), "陪伴", actor_id)
             rerun_app()
     with col3:
-        if st.button(f"🌱 鼓励 {supports.get('鼓励', 0)}", key=f"encourage_{post.get('id')}"):
-            update_community_support(post.get("id"), "鼓励")
+        encouraged = actor_id in supporters.get("鼓励", [])
+        if st.button(f"{'✅' if encouraged else '🌱'} 鼓励 {supports.get('鼓励', 0)}", key=f"encourage_{post.get('id')}", disabled=encouraged):
+            update_community_support(post.get("id"), "鼓励", actor_id)
             rerun_app()
 
     with st.expander("评论与支持"):
@@ -123,7 +131,7 @@ for post in visible_posts:
         for item in comments[-5:]:
             st.markdown(f'- **{escape(item.get("username", "匿名用户"))}**：{escape(item.get("content", ""))}')
 
-    if current_user():
+    if current_user() and post.get("username") == current_user():
         with st.expander("管理员审核"):
             st.caption(post.get("risk_reason", ""))
             col1, col2 = st.columns(2)

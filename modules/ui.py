@@ -58,9 +58,9 @@ def apply_calm_theme() -> None:
         }
 
         .block-container {
-            padding-top: 2.6rem;
+            padding-top: 1.2rem;
             padding-bottom: 3rem;
-            max-width: 1180px;
+            max-width: 1360px;
         }
 
         .bili-topbar {
@@ -69,12 +69,13 @@ def apply_calm_theme() -> None:
             justify-content: space-between;
             gap: 1rem;
             margin: 0.4rem 0 1.2rem;
-            padding: 0.7rem 0.85rem;
+            padding: 0.65rem 0.75rem;
             border: 1px solid rgba(251, 114, 153, 0.16);
             border-radius: 14px;
             background: rgba(255, 252, 245, 0.9);
             box-shadow: 0 12px 30px rgba(92, 118, 105, 0.1);
             backdrop-filter: blur(12px);
+            width: min(100%, 1320px);
         }
 
         .bili-brand {
@@ -91,11 +92,14 @@ def apply_calm_theme() -> None:
 
         .bili-nav {
             display: flex;
-            flex-wrap: wrap;
-            gap: 0.4rem;
+            flex: 1 1 auto;
+            flex-wrap: nowrap;
+            gap: 0.18rem;
             align-items: center;
             justify-content: center;
             min-width: 0;
+            overflow-x: auto;
+            scrollbar-width: thin;
         }
 
         .bili-link,
@@ -103,11 +107,14 @@ def apply_calm_theme() -> None:
             display: inline-flex;
             align-items: center;
             min-height: 36px;
-            padding: 0 0.82rem;
+            flex: 0 0 auto;
+            padding: 0 0.58rem;
             border-radius: 999px;
             color: var(--calm-muted);
             text-decoration: none;
+            font-size: 0.95rem;
             font-weight: 650;
+            white-space: nowrap;
             transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
         }
 
@@ -349,35 +356,21 @@ def apply_calm_theme() -> None:
             opacity: 0.9;
         }
 
-        .confidence-wrap {
-            position: relative;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.18rem;
-            padding-right: 0.65rem;
-        }
-
-        .confidence-badge {
-            position: absolute;
-            top: -0.55rem;
-            right: -0.05rem;
-            display: inline-flex;
+        .mic-trigger {
+            width: 46px;
+            height: 46px;
+            display: flex;
             align-items: center;
             justify-content: center;
-            width: 1rem;
-            height: 1rem;
-            border-radius: 999px;
-            background: var(--bili-pink);
-            color: white;
-            font-size: 0.7rem;
-            font-weight: 800;
-            line-height: 1;
-            box-shadow: 0 4px 10px rgba(251, 114, 153, 0.26);
-            cursor: help;
+            margin: 0 auto 0.25rem;
+            border: 1px solid rgba(124, 163, 139, 0.28);
+            border-radius: 50%;
+            background: rgba(238, 246, 241, 0.94);
+            box-shadow: 0 8px 20px rgba(92, 118, 105, 0.1);
+            font-size: 1.35rem;
         }
 
         .confidence-card {
-            position: relative;
             min-height: 96px;
             padding: 1rem;
             border: 1px solid var(--calm-line);
@@ -395,6 +388,14 @@ def apply_calm_theme() -> None:
             color: var(--calm-ink);
             font-size: 2rem;
             font-weight: 750;
+        }
+
+        .confidence-note {
+            margin-top: 0.35rem;
+            color: var(--calm-muted);
+            font-size: 0.78rem;
+            line-height: 1.55;
+            opacity: 0.82;
         }
 
         div[data-baseweb="tab-list"] {
@@ -424,8 +425,8 @@ def apply_calm_theme() -> None:
                 grid-template-columns: 1fr;
             }
             .bili-topbar {
-                align-items: flex-start;
-                flex-direction: column;
+                align-items: center;
+                flex-direction: row;
             }
             .calm-hero {
                 padding: 1.4rem;
@@ -501,49 +502,20 @@ def render_home_hero() -> None:
 
 
 def render_bili_topbar(active: str = "") -> None:
-    pages = [
-        ("主页", "/"),
-        ("情绪分析", "/情绪分析"),
-        ("AI陪伴聊天", "/AI陪伴聊天"),
-        ("情绪记录", "/情绪记录"),
-        ("音视频分析", "/音视频分析"),
-        ("CSV批量分析", "/CSV批量分析"),
-        ("可视化报告", "/可视化报告"),
-        ("社区", "/社区"),
-        ("关于系统", "/关于系统"),
-    ]
-    nav_links = "".join(
-        f'<a class="bili-link{" active" if name == active else ""}" href="{href}" target="_self">{name}</a>'
-        for name, href in pages[1:]
-    )
-    html = (
-        '<div class="bili-topbar">'
-        '<a class="bili-brand" href="/" target="_self"><span>Emotion</span> Companion</a>'
-        f'<div class="bili-nav">{nav_links}</div>'
-        '<a class="bili-home-link" href="/" target="_self">主页</a>'
-        "</div>"
-    )
-    st.markdown(html, unsafe_allow_html=True)
+    return None
 
 
 def confidence_hint(score: float) -> str:
-    explanation = "置信度表示系统对当前情绪标签判断的可靠程度，数值越接近 1 越可靠。"
-    return (
-        '<span class="confidence-wrap">'
-        f"置信度：{score}"
-        f'<span class="confidence-badge" title="{explanation}">!</span>'
-        "</span>"
-    )
+    return f"置信度：{score}"
 
 
 def render_confidence_card(score: float) -> str:
     explanation = "置信度表示系统对当前情绪标签判断的可靠程度，数值越接近 1 越可靠。"
     return (
         '<div class="confidence-card">'
-        '<div class="confidence-card-label">置信度'
-        f'<span class="confidence-badge" title="{explanation}">!</span>'
-        "</div>"
+        '<div class="confidence-card-label">置信度</div>'
         f'<div class="confidence-card-value">{score}</div>'
+        f'<div class="confidence-note">{explanation}</div>'
         "</div>"
     )
 
@@ -552,9 +524,10 @@ def render_feature_cards() -> None:
     st.markdown(
         """
         <div class="calm-card-grid">
-          <a class="calm-card" href="/情绪分析" target="_self" aria-label="进入情绪分析"><b>情绪分析</b><span>输入文本，查看情绪识别结果、解释和建议内容。</span></a>
-          <a class="calm-card" href="/情绪聊天" target="_self" aria-label="进入 AI 陪伴聊天"><b>AI陪伴聊天</b><span>保留聊天记录，持续获得贴近当前状态的陪伴回复。</span></a>
+          <a class="calm-card" href="/AI陪伴聊天" target="_self" aria-label="进入 AI 陪伴聊天"><b>AI陪伴聊天</b><span>保留聊天记录，持续获得贴近当前状态的陪伴回复。</span></a>
           <a class="calm-card" href="/情绪记录" target="_self" aria-label="进入情绪记录"><b>情绪记录</b><span>查看历史记录表、情绪分类统计和每日情绪趋势。</span></a>
+          <a class="calm-card" href="/音视频分析" target="_self" aria-label="进入音视频分析"><b>音视频分析</b><span>上传音频或视频，转写成文字后继续完成情绪分析和陪伴回应。</span></a>
+          <a class="calm-card" href="/CSV批量分析" target="_self" aria-label="进入 CSV 批量分析"><b>CSV批量分析</b><span>面向评论、问卷和反馈数据，批量标注情绪并支持筛选导出。</span></a>
           <a class="calm-card" href="/可视化报告" target="_self" aria-label="进入可视化报告"><b>可视化报告</b><span>展示分布图、趋势图、关键词词云、代表性语句和整体建议。</span></a>
           <a class="calm-card" href="/社区" target="_self" aria-label="进入社区"><b>社区</b><span>发布情绪动态，浏览同学们的状态分享和互相支持的留言。</span></a>
         </div>

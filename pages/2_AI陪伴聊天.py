@@ -1,13 +1,25 @@
-from html import escape
 from datetime import datetime
+from html import escape
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 import pandas as pd
 import streamlit as st
 
-from modules.auth import current_user, persist_chat_records, persist_report, render_auth_panel, rerun_app
+from modules.auth import (
+    archive_current_chat,
+    assistant_name,
+    current_user,
+    persist_chat_records,
+    persist_report,
+    render_auth_panel,
+    rerun_app,
+    search_chat_records,
+)
 from modules.emotion_analyzer import EmotionAnalyzer
 from modules.reply_generator import generate_reply
 from modules.report_generator import build_chat_report
+from modules.speech_to_text import transcribe_audio
 from modules.ui import apply_calm_theme, confidence_hint, render_bili_topbar
 from modules.visualization import emotion_trend_chart
 
@@ -16,23 +28,90 @@ st.set_page_config(page_title="AI陪伴聊天", page_icon="AI", layout="wide")
 apply_calm_theme()
 render_bili_topbar("AI陪伴聊天")
 render_auth_panel()
+
 st.title("AI陪伴聊天")
-st.markdown('<div class="gentle-note">像日常聊天一样发送想说的话。系统会识别情绪，并把对话保存在已登录账号中。</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="gentle-note">像日常聊天一样发送想说的话。系统会识别情绪，并把对话保存在已登录账号中。</div>',
+    unsafe_allow_html=True,
+)
+
+current_assistant_name = assistant_name()
+analyzer = EmotionAnalyzer()
 
 if "chat_records" not in st.session_state:
     st.session_state.chat_records = []
 
-analyzer = EmotionAnalyzer()
-
 if not current_user():
     st.info("登录后可以自动保存对话和报告；未登录时仍可临时体验。")
+
+
+def add_chat_message(message_text: str, source: str = "text") -> None:
+    message_text = message_text.strip()
+    if not message_text:
+        return
+
+    result = analyzer.analyze(message_text)
+    reply = generate_reply(message_text, result.label, st.session_state.chat_records)
+    st.session_state.chat_records.append(
+        {
+            "text": message_text,
+            "emotion": result.label,
+            "score": result.score,
+            "polarity": result.polarity,
+            "reason": result.reason,
+            "reply": reply,
+            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "source": source,
+        }
+    )
+    persist_chat_records(st.session_state.chat_records)
+
+
+def transcribe_uploaded_audio(uploaded_audio) -> str:
+    suffix = Path(getattr(uploaded_audio, "name", "voice.wav")).suffix.lower() or ".wav"
+    temp_path = None
+    try:
+        with NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
+            temp_path = Path(temp_file.name)
+            temp_file.write(uploaded_audio.getvalue())
+        return transcribe_audio(temp_path)
+    finally:
+        try:
+            if temp_path and temp_path.exists():
+                temp_path.unlink()
+        except OSError:
+            pass
+
+
+tool_col1, tool_col2 = st.columns(2)
+with tool_col1:
+    if st.button("开启新聊天"):
+        if current_user():
+            archived = archive_current_chat()
+            st.success("已开启新聊天。" if archived else "当前没有可归档的聊天。")
+        else:
+            st.session_state.chat_records = []
+            st.success("已开启新聊天。")
+        rerun_app()
+with tool_col2:
+    search_keyword = st.text_input("查找聊天记录", placeholder="输入关键词、情绪或回复内容")
+
+if current_user() and search_keyword.strip():
+    search_results = search_chat_records(search_keyword)
+    st.subheader("查找结果")
+    if search_results:
+        st.dataframe(search_results, use_container_width=True, hide_index=True)
+    else:
+        st.info("没有找到匹配的聊天记录。")
+elif search_keyword.strip():
+    st.info("登录后可以查找已保存的聊天记录。")
 
 chat_html = ['<div class="chat-shell">']
 if not st.session_state.chat_records:
     chat_html.append(
         '<div class="chat-row assistant">'
         '<div class="chat-bubble">'
-        '<div class="chat-name">情绪陪伴助手</div>'
+        f'<div class="chat-name">{escape(current_assistant_name)}</div>'
         '<div class="chat-text">你好，我在这里。你可以先发一句现在最想说的话。</div>'
         "</div>"
         "</div>"
@@ -48,9 +127,10 @@ else:
             "</div>"
             '<div class="chat-row assistant">'
             '<div class="chat-bubble">'
-            '<div class="chat-name">情绪陪伴助手</div>'
+            f'<div class="chat-name">{escape(current_assistant_name)}</div>'
             f'<div class="chat-text">{escape(record["reply"])}</div>'
             f'<div class="chat-meta">情绪：{escape(record["emotion"])} | {confidence_hint(record["score"])} | {escape(record["reason"])}</div>'
+            '<div class="confidence-note">置信度表示系统对当前情绪标签判断的可靠程度，数值越接近 1 越可靠。</div>'
             "</div>"
             "</div>"
         )
@@ -58,27 +138,46 @@ chat_html.append("</div>")
 st.markdown("\n".join(chat_html), unsafe_allow_html=True)
 
 with st.form("chat_form", clear_on_submit=True):
-    user_text = st.text_input("发送消息", placeholder="例如：我最近压力很大，感觉什么事情都做不好。", label_visibility="collapsed")
+    input_col, mic_col = st.columns([9, 1])
+    with input_col:
+        user_text = st.text_input(
+            "发送消息",
+            placeholder="例如：我最近压力很大，感觉什么事情都做不好。",
+            label_visibility="collapsed",
+        )
+    with mic_col:
+        st.markdown('<div class="mic-trigger" title="语音输入">🎙️</div>', unsafe_allow_html=True)
+        audio_input = getattr(st, "audio_input", None)
+        if audio_input:
+            uploaded_voice = audio_input("语音输入", label_visibility="collapsed")
+        else:
+            uploaded_voice = st.file_uploader(
+                "语音输入",
+                type=["mp3", "wav", "m4a", "aac", "flac", "ogg"],
+                label_visibility="collapsed",
+            )
     submitted = st.form_submit_button("发送")
 
-if submitted and user_text.strip():
-    with st.spinner("正在生成回复..."):
-        result = analyzer.analyze(user_text)
-        reply = generate_reply(user_text, result.label, st.session_state.chat_records)
-
-    st.session_state.chat_records.append(
-        {
-            "text": user_text,
-            "emotion": result.label,
-            "score": result.score,
-            "polarity": result.polarity,
-            "reason": result.reason,
-            "reply": reply,
-            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        }
-    )
-    persist_chat_records(st.session_state.chat_records)
-    rerun_app()
+if submitted:
+    if user_text.strip():
+        with st.spinner("正在生成回复..."):
+            add_chat_message(user_text, "text")
+        rerun_app()
+    elif uploaded_voice:
+        try:
+            with st.spinner("正在识别语音并生成回复..."):
+                voice_text = transcribe_uploaded_audio(uploaded_voice)
+                if voice_text:
+                    add_chat_message(voice_text, "voice")
+                    st.success("语音已识别并发送。")
+                    rerun_app()
+                else:
+                    st.warning("没有识别到有效语音内容。")
+        except Exception as exc:
+            st.error(str(exc))
+            st.info("如果当前版本没有浏览器录音能力，请使用麦克风旁的语音文件上传，或升级到支持 st.audio_input 的 Streamlit。")
+    else:
+        st.warning("请输入文字，或点击麦克风入口添加语音。")
 
 col1, col2 = st.columns(2)
 with col1:
