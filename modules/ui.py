@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 import streamlit as st
 
 
@@ -176,6 +178,83 @@ def apply_calm_theme() -> None:
             background: rgba(255, 252, 245, 0.72);
         }
 
+        .chat-shell {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin: 1.2rem 0;
+        }
+
+        .chat-row {
+            display: flex;
+            width: 100%;
+        }
+
+        .chat-row.user {
+            justify-content: flex-end;
+        }
+
+        .chat-row.assistant {
+            justify-content: flex-start;
+        }
+
+        .chat-bubble {
+            width: min(78%, 760px);
+            padding: 0.95rem 1rem;
+            border: 1px solid var(--calm-line);
+            border-radius: 16px;
+            box-shadow: 0 10px 26px rgba(92, 118, 105, 0.08);
+        }
+
+        .chat-row.user .chat-bubble {
+            background: rgba(255, 252, 245, 0.96);
+            border-bottom-right-radius: 5px;
+        }
+
+        .chat-row.assistant .chat-bubble {
+            background: rgba(238, 246, 241, 0.94);
+            border-bottom-left-radius: 5px;
+        }
+
+        .chat-name {
+            margin-bottom: 0.35rem;
+            color: var(--calm-ink);
+            font-weight: 700;
+        }
+
+        .chat-text {
+            color: var(--calm-muted);
+            line-height: 1.75;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .chat-meta {
+            margin-top: 0.55rem;
+            color: var(--calm-muted);
+            font-size: 0.88rem;
+            opacity: 0.9;
+        }
+
+        div[data-baseweb="tab-list"] {
+            gap: 0.4rem;
+            border-bottom: 1px solid var(--calm-line);
+        }
+
+        button[data-baseweb="tab"] {
+            border: 1px solid var(--calm-line);
+            border-bottom: 0;
+            border-radius: 12px 12px 0 0;
+            background: rgba(255, 252, 245, 0.72);
+            color: var(--calm-muted);
+        }
+
+        button[data-baseweb="tab"][aria-selected="true"] {
+            background: rgba(238, 246, 241, 0.96);
+            color: var(--calm-ink);
+            box-shadow: inset 0 -3px 0 var(--calm-sage);
+        }
+
         @media (max-width: 900px) {
             .calm-card-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -199,6 +278,9 @@ def apply_calm_theme() -> None:
             .calm-hero {
                 min-height: 470px;
             }
+            .chat-bubble {
+                width: 92%;
+            }
         }
         </style>
         """,
@@ -207,8 +289,8 @@ def apply_calm_theme() -> None:
 
 
 def render_cartoon_companion() -> str:
-    return """
-    <svg class="calm-hero-art" viewBox="0 0 320 260" role="img" aria-label="卡通陪伴插画">
+    svg = """
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 260" role="img" aria-label="卡通陪伴插画">
       <defs>
         <linearGradient id="leafGrad" x1="0" x2="1" y1="0" y2="1">
           <stop offset="0" stop-color="#bfd9c7"/>
@@ -233,17 +315,19 @@ def render_cartoon_companion() -> str:
       <path d="M254 205c15 13 39 12 52-4-22-11-39-10-52 4z" fill="#b8d7df"/>
     </svg>
     """
+    return f'<img class="calm-hero-art" src="data:image/svg+xml;utf8,{quote(svg)}" alt="卡通陪伴插画">'
 
 
 def render_home_hero() -> None:
+    hero_html = (
+        '<div class="calm-hero">'
+        "<h1>基于 NLP 的多模态情绪陪伴与情感分析系统</h1>"
+        "<p>用柔和的界面承接文字、音频、视频与 CSV 数据，识别情绪变化，生成温和回应和可导出的分析报告。</p>"
+        f"{render_cartoon_companion()}"
+        "</div>"
+    )
     st.markdown(
-        f"""
-        <div class="calm-hero">
-          <h1>基于 NLP 的多模态情绪陪伴与情感分析系统</h1>
-          <p>用柔和的界面承接文字、音频、视频与 CSV 数据，识别情绪变化，生成温和回应和可导出的分析报告。</p>
-          {render_cartoon_companion()}
-        </div>
-        """,
+        hero_html,
         unsafe_allow_html=True,
     )
 

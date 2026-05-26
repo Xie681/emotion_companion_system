@@ -3,6 +3,7 @@ from tempfile import NamedTemporaryFile
 
 import streamlit as st
 
+from modules.auth import render_auth_panel
 from modules.emotion_analyzer import EmotionAnalyzer
 from modules.reply_generator import generate_reply
 from modules.speech_to_text import transcribe_audio
@@ -12,6 +13,7 @@ from modules.video_processor import extract_audio_from_video
 
 st.set_page_config(page_title="音视频分析", page_icon="AI", layout="wide")
 apply_calm_theme()
+render_auth_panel()
 st.title("音视频上传转文字与情绪分析")
 st.markdown('<div class="gentle-note">适合分析语音日记、访谈片段或视频反馈。上传后会先转写为文字，再进行情绪识别。</div>', unsafe_allow_html=True)
 

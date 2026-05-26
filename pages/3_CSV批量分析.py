@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 
+from modules.auth import current_user, persist_batch_result, render_auth_panel
 from modules.batch_analyzer import analyze_dataframe
 from modules.ui import apply_calm_theme
 from modules.visualization import create_wordcloud_image, emotion_bar_chart, emotion_pie_chart
@@ -8,8 +9,11 @@ from modules.visualization import create_wordcloud_image, emotion_bar_chart, emo
 
 st.set_page_config(page_title="CSV 批量分析", page_icon="AI", layout="wide")
 apply_calm_theme()
+render_auth_panel()
 st.title("CSV 批量情感分析")
 st.markdown('<div class="gentle-note">上传评论、问卷或反馈数据，选择文本列后即可批量标注情绪。</div>', unsafe_allow_html=True)
+if not current_user():
+    st.info("登录后，CSV 分析结果会自动保存到当前账号。")
 
 uploaded_csv = st.file_uploader("上传 CSV 文件", type=["csv"])
 
@@ -24,6 +28,7 @@ if uploaded_csv:
             result_df = analyze_dataframe(df, text_column)
             st.session_state.batch_result_df = result_df
             st.session_state.batch_text_column = text_column
+            persist_batch_result(result_df, text_column)
 
 if "batch_result_df" in st.session_state:
     result_df = st.session_state.batch_result_df

@@ -1,5 +1,6 @@
 import streamlit as st
 
+from modules.auth import render_auth_panel
 from modules.ui import apply_calm_theme, render_feature_cards, render_home_hero
 
 
@@ -9,6 +10,7 @@ st.set_page_config(
     layout="wide",
 )
 apply_calm_theme()
+render_auth_panel()
 
 render_home_hero()
 render_feature_cards()
