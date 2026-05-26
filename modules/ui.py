@@ -46,20 +46,17 @@ def apply_calm_theme() -> None:
         }
 
         .block-container {
-            padding-top: 1rem;
+            padding-top: 2.6rem;
             padding-bottom: 3rem;
             max-width: 1180px;
         }
 
         .bili-topbar {
-            position: sticky;
-            top: 0.65rem;
-            z-index: 10;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 1rem;
-            margin-bottom: 1rem;
+            margin: 0.4rem 0 1.2rem;
             padding: 0.7rem 0.85rem;
             border: 1px solid rgba(251, 114, 153, 0.16);
             border-radius: 14px;
@@ -86,6 +83,7 @@ def apply_calm_theme() -> None:
             gap: 0.4rem;
             align-items: center;
             justify-content: center;
+            min-width: 0;
         }
 
         .bili-link,
