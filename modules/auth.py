@@ -144,6 +144,69 @@ def archive_current_chat(title: str = "") -> bool:
     return True
 
 
+def list_chat_sessions() -> List[dict]:
+    username = current_user()
+    if not username:
+        return []
+    profile = load_user_profile(username)
+    sessions = []
+    current_records = profile.get("chat_records", [])
+    if current_records:
+        first_text = str(current_records[0].get("text", ""))
+        sessions.append(
+            {
+                "id": "current",
+                "title": first_text[:24] or "当前聊天",
+                "updated_at": current_records[-1].get("created_at", ""),
+                "records": current_records,
+                "is_current": True,
+            }
+        )
+    for session in profile.get("chat_sessions", []):
+        sessions.append({**session, "is_current": False})
+    return sessions
+
+
+def restore_chat_session(session_id: str) -> bool:
+    username = current_user()
+    if not username:
+        return False
+    profile = load_user_profile(username)
+    if session_id == "current":
+        st.session_state.chat_records = profile.get("chat_records", [])
+        return True
+
+    selected_session = None
+    remaining_sessions = []
+    for session in profile.get("chat_sessions", []):
+        if session.get("id") == session_id:
+            selected_session = session
+        else:
+            remaining_sessions.append(session)
+    if not selected_session:
+        return False
+
+    current_records = profile.get("chat_records", [])
+    if current_records:
+        first_text = str(current_records[0].get("text", ""))
+        remaining_sessions.insert(
+            0,
+            {
+                "id": uuid4().hex,
+                "title": first_text[:24] or "上一段聊天",
+                "created_at": current_records[0].get("created_at", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "records": current_records,
+            },
+        )
+
+    profile["chat_records"] = selected_session.get("records", [])
+    profile["chat_sessions"] = remaining_sessions[:50]
+    save_user_profile(username, profile)
+    st.session_state.chat_records = profile["chat_records"]
+    return True
+
+
 def search_chat_records(keyword: str) -> List[dict]:
     username = current_user()
     if not username or not keyword.strip():
@@ -269,9 +332,20 @@ def load_community_posts() -> List[dict]:
 def assistant_name(username: Optional[str] = None) -> str:
     username = username or current_user()
     if not username:
-        return "情绪陪伴助手"
+        return st.session_state.get("assistant_name", "情绪陪伴助手")
     profile = load_user_profile(username)
-    return profile.get("assistant_name") or "情绪陪伴助手"
+    return profile.get("assistant_name") or st.session_state.get("assistant_name", "情绪陪伴助手")
+
+
+def update_assistant_name(name: str) -> None:
+    clean_name = name.strip() or "情绪陪伴助手"
+    st.session_state.assistant_name = clean_name
+    username = current_user()
+    if username:
+        profile = load_user_profile(username)
+        profile["assistant_name"] = clean_name
+        save_user_profile(username, profile)
+        st.session_state.user_profile = profile
 
 
 def _save_community_posts(posts: List[dict]) -> None:
@@ -449,3 +523,19 @@ def render_auth_controls(key_prefix: str = "auth", show_title: bool = True) -> N
 def render_auth_panel() -> None:
     with st.sidebar:
         render_auth_controls("sidebar_auth")
+        if current_user():
+            st.markdown("---")
+            st.markdown("### 历史聊天")
+            sessions = list_chat_sessions()
+            if not sessions:
+                st.caption("还没有保存的聊天。")
+            for session in sessions[:12]:
+                title = session.get("title") or "未命名聊天"
+                prefix = "当前：" if session.get("is_current") else ""
+                updated_at = session.get("updated_at") or session.get("created_at", "")
+                label = f"{prefix}{title}"
+                if st.button(label, key=f"sidebar_chat_{session.get('id')}", use_container_width=True):
+                    restore_chat_session(session.get("id", ""))
+                    rerun_app()
+                if updated_at:
+                    st.caption(updated_at)

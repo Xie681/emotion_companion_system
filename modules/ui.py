@@ -31,6 +31,29 @@ def apply_calm_theme() -> None:
             color: var(--calm-ink);
         }
 
+        header,
+        header[data-testid="stHeader"],
+        .stAppHeader,
+        .stApp > header {
+            height: 0 !important;
+            min-height: 0 !important;
+            max-height: 0 !important;
+            overflow: hidden !important;
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+
+        [data-testid="stToolbar"],
+        [data-testid="stDecoration"],
+        [data-testid="stStatusWidget"],
+        .stDeployButton,
+        .viewerBadge_container__1QSob,
+        #MainMenu,
+        header[data-testid="stHeader"] [data-testid="baseButton-header"],
+        header[data-testid="stHeader"] [data-testid="stToolbarActions"] {
+            display: none !important;
+        }
+
         [data-testid="stSidebar"] {
             background: linear-gradient(180deg, #eef5ef 0%, #f9f3ea 100%);
             border-right: 1px solid var(--calm-line);
@@ -170,14 +193,16 @@ def apply_calm_theme() -> None:
 
         .calm-card-grid {
             display: grid;
-            grid-template-columns: repeat(5, minmax(0, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            align-items: stretch;
             gap: 1rem;
             margin-top: 1.3rem;
         }
 
         .calm-card {
-            display: block;
-            min-height: 135px;
+            display: flex;
+            flex-direction: column;
+            min-height: 150px;
             padding: 1rem;
             border: 1px solid var(--calm-line);
             border-radius: 14px;
@@ -207,6 +232,7 @@ def apply_calm_theme() -> None:
             color: var(--calm-muted);
             line-height: 1.65;
             font-size: 0.94rem;
+            flex: 1;
         }
 
         .soft-panel {
@@ -224,7 +250,15 @@ def apply_calm_theme() -> None:
             margin-top: 1rem;
         }
 
-        .record-card {
+        .resource-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0 1.4rem;
+        }
+
+        .record-card,
+        .resource-card {
             min-height: 120px;
             padding: 1rem;
             border: 1px solid var(--calm-line);
@@ -233,14 +267,21 @@ def apply_calm_theme() -> None:
             box-shadow: 0 10px 26px rgba(92, 118, 105, 0.08);
         }
 
-        .record-card b {
+        .resource-card {
+            min-height: 190px;
+        }
+
+        .record-card b,
+        .resource-card b {
             display: block;
             margin-bottom: 0.4rem;
             color: var(--calm-ink);
         }
 
         .record-card span,
+        .resource-card span,
         .community-meta {
+            display: block;
             color: var(--calm-muted);
             font-size: 0.9rem;
             line-height: 1.7;
@@ -443,6 +484,9 @@ def apply_calm_theme() -> None:
         @media (max-width: 560px) {
             .calm-card-grid {
                 grid-template-columns: 1fr;
+            }
+            .calm-card {
+                min-height: 128px;
             }
             .calm-hero {
                 min-height: 470px;

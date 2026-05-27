@@ -1,6 +1,7 @@
 import streamlit as st
 
 from modules.auth import render_auth_panel
+from modules.hospital_resources import search_hospital_resources
 from modules.ui import apply_calm_theme, render_bili_topbar, render_feature_cards, render_home_hero
 
 
@@ -28,6 +29,38 @@ st.markdown(
 
 st.subheader("功能入口卡片")
 render_feature_cards()
+
+st.subheader("心理咨询资源查询")
+st.markdown(
+    """
+    <div class="gentle-note">
+      输入地区、城市或医院名称，查询部分地区第一医院/综合医院的心理咨询相关联系方式。
+      若出现强烈危机或自伤风险，请优先联系身边可信任的人或当地紧急救助服务。
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+resource_keyword = st.text_input("搜索地区或医院", placeholder="例如：北京、广州、华西、郑州")
+resources = search_hospital_resources(resource_keyword)
+if resources:
+    st.caption("以下联系方式用于课程系统演示和查询引导，电话、邮箱、门诊安排请以医院官网或官方公众号最新信息为准。")
+    st.markdown('<div class="resource-grid">', unsafe_allow_html=True)
+    for item in resources:
+        st.markdown(
+            f"""
+            <div class="resource-card">
+              <b>{item["region"]} · {item["hospital"]}</b>
+              <span>咨询方向：{item["department"]}</span>
+              <span>电话：{item["phone"]}</span>
+              <span>邮箱：{item["email"]}</span>
+              <span>地址：{item["address"]}</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    st.markdown("</div>", unsafe_allow_html=True)
+else:
+    st.info("暂未找到匹配地区。可以尝试输入城市名、省份名或医院名称。")
 
 st.subheader("使用流程说明")
 st.markdown(
