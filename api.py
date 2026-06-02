@@ -9,9 +9,10 @@ from pydantic import BaseModel, Field
 
 from modules.batch_analyzer import analyze_dataframe
 from modules.emotion_analyzer import EmotionAnalyzer
+from modules.interview_analyzer import extract_interview_insight
 from modules.reply_generator import generate_reply
-from modules.speech_to_text import transcribe_audio
-from modules.video_processor import extract_audio_from_video
+from modules.speech_to_text import transcribe_audio_isolated
+from modules.video_processor import extract_audio_from_video_isolated
 
 
 app = FastAPI(
@@ -103,12 +104,19 @@ async def transcribe(file: UploadFile = File(...)) -> dict:
     try:
         audio_path = temp_path
         if suffix in video_suffixes:
-            audio_path = extract_audio_from_video(temp_path, temp_path.parent)
-        text = transcribe_audio(audio_path)
+            audio_path = extract_audio_from_video_isolated(temp_path, temp_path.parent)
+        text = transcribe_audio_isolated(audio_path)
         result = EmotionAnalyzer().analyze(text)
+        insight = extract_interview_insight(text)
         return {
             "text": text,
             "emotion": result.to_dict(),
+            "interview_insight": {
+                "summary": insight.summary,
+                "viewpoints": insight.viewpoints,
+                "keywords": insight.keywords,
+                "evidence": insight.evidence,
+            },
             "reply": generate_reply(text, result.label),
         }
     except Exception as exc:

@@ -21,9 +21,12 @@ from modules.auth import (
 from modules.emotion_analyzer import EmotionAnalyzer
 from modules.reply_generator import generate_reply_with_source
 from modules.report_generator import build_chat_report
-from modules.speech_to_text import transcribe_audio
+from modules.speech_to_text import transcribe_audio_isolated_with_model
 from modules.ui import apply_calm_theme, confidence_hint, render_bili_topbar
 from modules.visualization import emotion_trend_chart
+
+
+MAX_VOICE_BYTES = 10 * 1024 * 1024
 
 
 st.set_page_config(page_title="AI陪伴聊天", page_icon="AI", layout="wide")
@@ -85,14 +88,14 @@ def add_chat_message(message_text: str, source: str = "text") -> None:
     persist_chat_records(st.session_state.chat_records)
 
 
-def transcribe_uploaded_audio(uploaded_audio) -> str:
+def transcribe_uploaded_audio(uploaded_audio, model_name: str) -> str:
     suffix = Path(getattr(uploaded_audio, "name", "voice.wav")).suffix.lower() or ".wav"
     temp_path = None
     try:
         with NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
             temp_path = Path(temp_file.name)
             temp_file.write(uploaded_audio.getvalue())
-        return transcribe_audio(temp_path)
+        return transcribe_audio_isolated_with_model(temp_path, model_name=model_name)
     finally:
         try:
             if temp_path and temp_path.exists():
@@ -166,17 +169,29 @@ with input_col:
         submitted = st.form_submit_button("发送")
 
 with mic_col:
+    voice_quality = st.selectbox(
+        "识别精度",
+        options=["base", "tiny"],
+        format_func=lambda value: "准确" if value == "base" else "快速",
+        index=0,
+        label_visibility="collapsed",
+        key="voice_quality_mode",
+        help="准确模式识别更稳但稍慢；快速模式速度快但容易误听。",
+    )
     audio_input = getattr(st, "audio_input", None)
+    recorded_voice = None
     if audio_input:
-        uploaded_voice = audio_input("点击说话", label_visibility="collapsed", key="voice_chat_audio")
+        recorded_voice = audio_input("点击说话", label_visibility="collapsed", key="voice_chat_audio")
     else:
         st.markdown('<div class="mic-trigger" title="语音输入">🎙️</div>', unsafe_allow_html=True)
-        uploaded_voice = st.file_uploader(
-            "语音输入",
-            type=["mp3", "wav", "m4a", "aac", "flac", "ogg"],
-            label_visibility="collapsed",
-            key="voice_chat_file",
-        )
+    uploaded_voice_file = st.file_uploader(
+        "上传录音",
+        type=["mp3", "wav", "m4a", "aac", "flac", "ogg"],
+        label_visibility="collapsed",
+        key="voice_chat_file",
+        help="如果浏览器麦克风录制失败，请上传本地录音文件。",
+    )
+    uploaded_voice = recorded_voice or uploaded_voice_file
 
 if submitted:
     if user_text.strip():
@@ -191,17 +206,20 @@ if uploaded_voice:
     voice_hash = hashlib.sha256(voice_bytes).hexdigest()
     if st.session_state.get("last_voice_hash") != voice_hash:
         st.session_state.last_voice_hash = voice_hash
-        try:
-            with st.spinner("正在识别语音并生成回复..."):
-                voice_text = transcribe_uploaded_audio(uploaded_voice)
-                if voice_text:
-                    add_chat_message(voice_text, "voice")
-                    rerun_app()
-                else:
-                    st.warning("没有识别到有效语音内容。")
-        except Exception as exc:
-            st.error(str(exc))
-            st.info("如果当前版本没有浏览器录音能力，请使用麦克风旁的语音文件上传，或升级到支持 st.audio_input 的 Streamlit。")
+        if len(voice_bytes) > MAX_VOICE_BYTES:
+            st.warning("录音文件过大，请控制在 10MB 以内，或缩短录音后重试。")
+        else:
+            try:
+                with st.spinner("正在识别语音并生成回复..."):
+                    voice_text = transcribe_uploaded_audio(uploaded_voice, voice_quality)
+                    if voice_text:
+                        add_chat_message(voice_text, "voice")
+                        rerun_app()
+                    else:
+                        st.warning("没有识别到有效语音内容。请靠近麦克风，或上传一段更清晰的录音。")
+            except Exception as exc:
+                st.error(str(exc))
+                st.info("如果浏览器录音不稳定，请使用右侧上传入口提交 MP3/WAV/M4A 录音文件。")
 
 col1, col2 = st.columns(2)
 with col1:

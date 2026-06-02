@@ -1,7 +1,7 @@
 import streamlit as st
 
 from modules.auth import render_auth_panel
-from modules.hospital_resources import search_hospital_resources
+from modules.hospital_resources import default_hospital_resources, search_hospital_resources
 from modules.ui import apply_calm_theme, render_bili_topbar, render_feature_cards, render_home_hero
 
 
@@ -40,10 +40,22 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-resource_keyword = st.text_input("搜索地区或医院", placeholder="例如：北京、广州、华西、郑州")
-resources = search_hospital_resources(resource_keyword)
+resource_keyword = st.text_input(
+    "搜索地区、医院、简称或别名",
+    placeholder="例如：广西壮族自治区、广西医科大学第一附属医院、医科大附属医院、桂、南宁",
+)
+resources = search_hospital_resources(resource_keyword) if resource_keyword.strip() else default_hospital_resources(5)
 if resources:
-    st.caption("以下联系方式用于课程系统演示和查询引导，电话、邮箱、门诊安排请以医院官网或官方公众号最新信息为准。")
+    if resource_keyword.strip():
+        st.markdown(
+            '<div class="resource-hint">以下联系方式用于课程系统演示和查询引导，电话、邮箱、门诊安排请以医院官网或官方公众号最新信息为准。</div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            '<div class="resource-hint">默认展示5条重点查询地区示例，不代表地区风险排名。需要其他地区时，请在上方输入省份、城市、简称或医院名称搜索。</div>',
+            unsafe_allow_html=True,
+        )
     st.markdown('<div class="resource-grid">', unsafe_allow_html=True)
     for item in resources:
         st.markdown(
@@ -54,6 +66,8 @@ if resources:
               <span>电话：{item["phone"]}</span>
               <span>邮箱：{item["email"]}</span>
               <span>地址：{item["address"]}</span>
+              <span>官网来源：<a href="{item["source_url"]}" target="_blank">{item["source_url"]}</a></span>
+              <span>{item["notice"]}</span>
             </div>
             """,
             unsafe_allow_html=True,

@@ -80,6 +80,32 @@ def apply_calm_theme() -> None:
             color: var(--calm-muted);
         }
 
+        [data-testid="stMarkdownContainer"] p,
+        [data-testid="stMarkdownContainer"] li {
+            font-size: 1.30rem;
+            line-height: 1.75;
+        }
+
+        [data-testid="stMarkdownContainer"] ul li,
+        [data-testid="stMarkdownContainer"] ol li {
+            margin-bottom: 0.28rem;
+        }
+
+        [data-testid="stWidgetLabel"] label,
+        [data-testid="stWidgetLabel"] p,
+        [data-testid="stFileUploader"] label,
+        [data-testid="stTextInput"] label,
+        [data-testid="stTextArea"] label,
+        [data-testid="stSelectbox"] label,
+        [data-testid="stNumberInput"] label,
+        [data-testid="stDateInput"] label {
+            color: var(--calm-ink) !important;
+            font-size: 1.1rem !important;
+            font-weight: 700 !important;
+            line-height: 1.45 !important;
+            margin-bottom: 0.3rem !important;
+        }
+
         .block-container {
             padding-top: 1.2rem;
             padding-bottom: 3rem;
@@ -254,7 +280,22 @@ def apply_calm_theme() -> None:
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 1rem;
-            margin: 1rem 0 1.4rem;
+            margin: 0.15rem 0 1.2rem;
+        }
+
+        .resource-search-tip,
+        .resource-hint {
+            color: var(--calm-muted);
+            font-size: 0.88rem;
+            line-height: 1.6;
+        }
+
+        .resource-search-tip {
+            margin: -0.15rem 0 0.45rem;
+        }
+
+        .resource-hint {
+            margin: 0.15rem 0 0.15rem;
         }
 
         .record-card,

@@ -491,11 +491,13 @@ def render_auth_controls(key_prefix: str = "auth", show_title: bool = True) -> N
             rerun_app()
         return
 
-    mode = st.radio("账号操作", ["登录", "注册"], horizontal=True, key=f"{key_prefix}_mode")
-    input_username = st.text_input("用户名", key=f"{key_prefix}_username")
-    input_password = st.text_input("密码", type="password", key=f"{key_prefix}_password")
+    with st.form(f"{key_prefix}_form"):
+        mode = st.radio("账号操作", ["登录", "注册"], horizontal=True, key=f"{key_prefix}_mode")
+        input_username = st.text_input("用户名", key=f"{key_prefix}_username")
+        input_password = st.text_input("密码", type="password", key=f"{key_prefix}_password")
+        submitted = st.form_submit_button(mode)
 
-    if st.button(mode, key=f"{key_prefix}_submit"):
+    if submitted:
         if not input_username.strip() or not input_password:
             st.warning("请输入用户名和密码。")
             return
